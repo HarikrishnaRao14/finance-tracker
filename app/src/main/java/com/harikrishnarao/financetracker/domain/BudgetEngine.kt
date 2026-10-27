@@ -26,8 +26,8 @@ enum class Pace { ON_TRACK, WATCH, OVER }
 object BudgetEngine {
     const val HISTORY_MONTHS = 3
     private const val ROUND_TO: Paise = 100_00 // nearest ₹100
-    private const val ONE_OFF_MIN: Paise = 5_000_00 // a single spend above ₹5,000 ...
-    private const val ONE_OFF_SHARE = 0.5 // ... that is over half its category's total is a one-off
+    private const val ONE_OFF_MIN: Paise = 5_000_00 // a single spend of ₹5,000+ ...
+    private const val ONE_OFF_MULTIPLE = 3.0 // ... over 3x the category's other monthly spend is a one-off
     private const val WANT_TRIM = 0.9 // suggest 10% less on "wants"
 
     fun suggest(history: List<BudgetTxn>, incomeByMonth: List<Paise>, incomeOverride: Paise? = null): BudgetSuggestion {
@@ -45,7 +45,12 @@ object BudgetEngine {
         var advice = Category.budgetable.map { cat ->
             val txns = history.filter { it.category == cat && it.monthIndex in 0 until HISTORY_MONTHS }
             val gross = txns.filter { !it.isRefund }.sumOf { it.amount }
-            val oneOffs = txns.filter { !it.isRefund && it.amount >= ONE_OFF_MIN && it.amount > gross * ONE_OFF_SHARE }
+            // A one-off is a big spend far above what this category normally costs in a month.
+            // With only one month of data nothing can be called "normal", so nothing is removed.
+            val oneOffs = if (months < 2) emptyList() else txns.filter { t ->
+                val otherMonthly = (gross - t.amount).toDouble() / months
+                !t.isRefund && t.amount >= ONE_OFF_MIN && t.amount > ONE_OFF_MULTIPLE * otherMonthly
+            }
             val refunds = txns.filter { it.isRefund }.sumOf { it.amount }
             val net = (gross - oneOffs.sumOf { it.amount } - refunds).coerceAtLeast(0)
             val usual = net / months

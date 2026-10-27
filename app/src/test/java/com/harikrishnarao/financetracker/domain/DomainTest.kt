@@ -121,6 +121,14 @@ class BudgetEngineTest {
         assertEquals(2_000_00L, shop.usualMonthly)
     }
 
+    @Test fun `monthly rent is never treated as a one-off`() {
+        val h = (0..2).map { BudgetTxn(Category.BILLS, 15_000_00, it) }
+        assertEquals(15_000_00L, BudgetEngine.suggest(h, emptyList()).advice.single().usualMonthly)
+        // a single big bill in the only month of data is kept too
+        val one = BudgetEngine.suggest(listOf(BudgetTxn(Category.BILLS, 15_000_00, 0)), emptyList())
+        assertEquals(15_000_00L, one.advice.single().usualMonthly)
+    }
+
     @Test fun `refunds reduce usual spend`() {
         val h = listOf(BudgetTxn(Category.SHOPPING, 3_000_00, 0), BudgetTxn(Category.SHOPPING, 1_000_00, 0, isRefund = true))
         assertEquals(2_000_00L, BudgetEngine.suggest(h, emptyList()).advice.single().usualMonthly)
