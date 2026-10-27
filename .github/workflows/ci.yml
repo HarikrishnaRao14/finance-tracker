@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -28,14 +28,26 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Unit tests
-        run: ./gradlew --no-daemon testDebugUnitTest
+      - name: Unit tests, lint and debug APK
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew --no-daemon --console=plain testDebugUnitTest lintDebug assembleDebug 2>&1 | tee build.log
 
-      - name: Lint
-        run: ./gradlew --no-daemon lintDebug
-
-      - name: Build debug APK
-        run: ./gradlew --no-daemon assembleDebug
+      # Turns the important lines of a failed build into annotations, which can be read
+      # through the GitHub API even when the full log download is not available.
+      - name: Report build errors
+        if: failure()
+        shell: bash
+        run: |
+          grep -E '^e: |^w: .*(error|unresolved)|FAILED|What went wrong|AssertionError|Exception|expected:|Caused by|^> |ERROR:' build.log \
+            | grep -v 'BUILD FAILED' | head -200 > errors.txt || true
+          [ -s errors.txt ] || tail -80 build.log > errors.txt
+          split -l 25 errors.txt chunk_
+          for f in chunk_*; do
+            msg=$(sed -e 's/%/%25/g' "$f" | awk '{printf "%s%%0A", $0}')
+            echo "::error title=build log ${f#chunk_}::${msg}"
+          done
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
@@ -50,6 +62,7 @@ jobs:
         with:
           name: reports-${{ github.run_number }}
           path: |
+            build.log
             app/build/reports/
             app/build/test-results/
           retention-days: 14
