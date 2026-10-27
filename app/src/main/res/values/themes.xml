@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Only the window background before Compose draws; real theming lives in ui/theme. -->
+    <style name="Theme.FinanceTracker" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/splash_bg</item>
+    </style>
+    <color name="splash_bg">#F4F5F1</color>
+    <color name="launcher_bg">#1E6B52</color>
+</resources>
