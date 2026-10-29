@@ -16,7 +16,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -94,7 +94,7 @@ fun BillsScreen() {
             }
 
             if (bills.isEmpty()) {
-                item { Notice("No bills yet. Tap + to add rent, electricity, internet, subscriptions...") }
+                item { Notice("No bills yet. Tap 'Add bill' to add rent, electricity, internet, subscriptions...") }
             } else {
                 item {
                     Card {
@@ -122,10 +122,13 @@ fun BillsScreen() {
             }
         }
 
-        FloatingActionButton(
+        // Labelled, so it is not confused with the centre + (which adds a cash transaction).
+        ExtendedFloatingActionButton(
             onClick = { editing = Bill(name = "", amount = 0, dueDay = today.dayOfMonth, isAutopay = false) },
+            icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+            text = { Text("Add bill") },
             modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
-        ) { Icon(Icons.Filled.Add, contentDescription = "Add a bill") }
+        )
     }
 
     editing?.let { b ->
