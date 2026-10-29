@@ -1,6 +1,7 @@
 package com.harikrishnarao.financetracker.data
 
 import android.content.Context
+import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -37,7 +38,10 @@ data class Settings(
 
 private val Context.dataStore by preferencesDataStore(name = "settings")
 
-class SettingsStore(private val context: Context) {
+/** App settings. Takes the DataStore so tests can give it a temporary file. */
+class SettingsStore(private val store: DataStore<Preferences>) {
+    constructor(context: Context) : this(context.dataStore)
+
     private object K {
         val theme = stringPreferencesKey("theme")
         val name = stringPreferencesKey("user_name")
@@ -53,7 +57,7 @@ class SettingsStore(private val context: Context) {
         val income = longPreferencesKey("income_override")
     }
 
-    val settings: Flow<Settings> = context.dataStore.data.map { p -> p.toSettings() }
+    val settings: Flow<Settings> = store.data.map { p -> p.toSettings() }
 
     suspend fun current(): Settings = settings.first()
 
@@ -72,19 +76,19 @@ class SettingsStore(private val context: Context) {
         incomeOverride = this[K.income] ?: 0,
     )
 
-    suspend fun setTheme(theme: AppTheme) = context.dataStore.edit { it[K.theme] = theme.name }
-    suspend fun setUserName(name: String) = context.dataStore.edit { it[K.name] = name.trim().take(30) }
-    suspend fun setOnboardingDone(smsEnabled: Boolean) = context.dataStore.edit {
+    suspend fun setTheme(theme: AppTheme) = store.edit { it[K.theme] = theme.name }
+    suspend fun setUserName(name: String) = store.edit { it[K.name] = name.trim().take(30) }
+    suspend fun setOnboardingDone(smsEnabled: Boolean) = store.edit {
         it[K.onboarding] = true
         it[K.smsEnabled] = smsEnabled
     }
-    suspend fun setSmsEnabled(on: Boolean) = context.dataStore.edit { it[K.smsEnabled] = on }
-    suspend fun setParserVersion(v: Int) = context.dataStore.edit { it[K.parserVersion] = v }
-    suspend fun setChecklistDismissed(on: Boolean) = context.dataStore.edit { it[K.checklistDismissed] = on }
-    suspend fun setIncomeOverride(paise: Long) = context.dataStore.edit { it[K.income] = paise }
-    suspend fun resetSmsCursor() = context.dataStore.edit { it[K.lastSmsTs] = 0 }
+    suspend fun setSmsEnabled(on: Boolean) = store.edit { it[K.smsEnabled] = on }
+    suspend fun setParserVersion(v: Int) = store.edit { it[K.parserVersion] = v }
+    suspend fun setChecklistDismissed(on: Boolean) = store.edit { it[K.checklistDismissed] = on }
+    suspend fun setIncomeOverride(paise: Long) = store.edit { it[K.income] = paise }
+    suspend fun resetSmsCursor() = store.edit { it[K.lastSmsTs] = 0 }
 
-    suspend fun recordSync(at: Long, lastSmsTs: Long, read: Int, added: Int, skipped: String) = context.dataStore.edit {
+    suspend fun recordSync(at: Long, lastSmsTs: Long, read: Int, added: Int, skipped: String) = store.edit {
         it[K.lastSyncAt] = at
         it[K.lastSmsTs] = lastSmsTs
         it[K.read] = read.toLong()

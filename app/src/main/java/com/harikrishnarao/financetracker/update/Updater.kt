@@ -63,6 +63,7 @@ class Updater(private val context: Context) {
 
     /** Called when the app opens or comes back to the front; checks at most every 30 minutes. */
     suspend fun checkIfDue() {
+        if (Build.FINGERPRINT == "robolectric") return // no network in JVM tests
         val busy = _state.value is UpdateState.Downloading || _state.value is UpdateState.Installing
         if (busy || System.currentTimeMillis() - lastCheck < CHECK_EVERY_MS) return
         check(manual = false)
@@ -178,6 +179,10 @@ class Updater(private val context: Context) {
     }
 
     fun dismiss() { _state.value = UpdateState.Idle }
+
+    /** Lets screenshot tests show the banner without the network. */
+    @androidx.annotation.VisibleForTesting
+    fun showForTest(state: UpdateState) { _state.value = state }
 }
 
 /** Receives the installer's answer; shows Android's confirm screen when it asks for one. */

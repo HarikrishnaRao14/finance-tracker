@@ -89,6 +89,24 @@ jobs:
             dist/version.json
           make_latest: "true"
 
+      # Screenshots of every screen (from ScreenshotTest) go to a fixed pre-release, so they
+      # can be reviewed for each build. It never becomes the "latest" release.
+      - name: Publish screenshots for review
+        if: always() && github.event_name == 'push'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          shopt -s nullglob
+          files=(app/build/screenshots/*.png app/build/screenshots/problems.txt)
+          [ ${#files[@]} -gt 0 ] || { echo "no screenshots"; exit 0; }
+          gh release view ci-screenshots >/dev/null 2>&1 || \
+            gh release create ci-screenshots --title "CI screenshots" --notes "Screens from the latest CI run" --prerelease --latest=false
+          for a in $(gh release view ci-screenshots --json assets --jq '.assets[].name'); do
+            gh release delete-asset ci-screenshots "$a" -y
+          done
+          gh release upload ci-screenshots "${files[@]}" --clobber
+
       - name: Upload test and lint reports
         if: always()
         uses: actions/upload-artifact@v4

@@ -15,7 +15,7 @@ import com.harikrishnarao.financetracker.sms.Categorizer
 import com.harikrishnarao.financetracker.sms.ParseOutcome
 import com.harikrishnarao.financetracker.sms.SkipReason
 import com.harikrishnarao.financetracker.sms.SmsParser
-import com.harikrishnarao.financetracker.sms.SmsReader
+import com.harikrishnarao.financetracker.sms.SmsSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -34,7 +34,7 @@ data class DetectedSender(val code: String, val bankName: String, val known: Boo
 class FinanceRepository(
     private val db: AppDatabase,
     private val settings: SettingsStore,
-    private val smsReader: SmsReader,
+    private val smsReader: SmsSource,
 ) {
     private val txDao = db.transactions()
     private val logDao = db.smsLog()

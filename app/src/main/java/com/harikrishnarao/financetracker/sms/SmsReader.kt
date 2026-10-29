@@ -8,14 +8,20 @@ import androidx.core.content.ContextCompat
 
 data class RawSms(val id: Long, val address: String?, val body: String, val date: Long)
 
-/** Reads the phone's SMS inbox. Only called after the user grants READ_SMS. */
-class SmsReader(private val context: Context) {
+/** Where SMS come from. The phone inbox in the app, a fake list in tests. */
+interface SmsSource {
+    fun hasPermission(): Boolean
+    /** Messages received after [sinceMillis], oldest first. */
+    fun readInbox(sinceMillis: Long): List<RawSms>
+}
 
-    fun hasPermission(): Boolean =
+/** Reads the phone's SMS inbox. Only called after the user grants READ_SMS. */
+class SmsReader(private val context: Context) : SmsSource {
+
+    override fun hasPermission(): Boolean =
         ContextCompat.checkSelfPermission(context, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
 
-    /** Messages received after [sinceMillis], oldest first. */
-    fun readInbox(sinceMillis: Long): List<RawSms> {
+    override fun readInbox(sinceMillis: Long): List<RawSms> {
         if (!hasPermission()) return emptyList()
         val out = ArrayList<RawSms>()
         val projection = arrayOf(Telephony.Sms._ID, Telephony.Sms.ADDRESS, Telephony.Sms.BODY, Telephony.Sms.DATE)

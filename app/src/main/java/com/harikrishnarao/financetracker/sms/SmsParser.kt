@@ -28,7 +28,7 @@ sealed interface ParseOutcome {
  * Bump [VERSION] whenever a rule changes: the app then rebuilds SMS transactions once.
  */
 object SmsParser {
-    const val VERSION = 2
+    const val VERSION = 3
 
     private val IC = setOf(RegexOption.IGNORE_CASE)
 
@@ -110,8 +110,14 @@ object SmsParser {
         if (amount <= 0) return ParseOutcome.Skipped(SkipReason.NO_AMOUNT)
 
         val acc = ACCOUNT.find(text)
-        val isCard = CREDIT_CARD.containsMatchIn(text) ||
-            (acc?.groupValues?.get(1)?.equals("card", ignoreCase = true) == true && !DEBIT_CARD.containsMatchIn(text))
+        // Card or bank account is decided by the words right before the account number:
+        // "Credit Card Account XX5678" / "Card XX5678" is a card, but "Acct XX719 debited ...;
+        // ICICI CREDIT CARD credited" is a bank account paying the card bill.
+        val isCard = acc != null && run {
+            val near = text.substring(maxOf(0, acc.range.first - 25), acc.range.last + 1)
+            CREDIT_CARD.containsMatchIn(near) ||
+                (acc.groupValues[1].equals("card", ignoreCase = true) && !DEBIT_CARD.containsMatchIn(near))
+        }
 
         return ParseOutcome.Transaction(
             ParsedSms(

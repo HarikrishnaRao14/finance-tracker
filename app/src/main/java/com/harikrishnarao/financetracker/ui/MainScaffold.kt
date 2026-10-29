@@ -3,7 +3,7 @@ package com.harikrishnarao.financetracker.ui
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -96,7 +96,8 @@ fun MainScaffold() {
             NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
                 TabItem(Tab.HOME, selected(Tab.HOME)) { open(Tab.HOME) }
                 TabItem(Tab.SPENDS, selected(Tab.SPENDS)) { open(Tab.SPENDS) }
-                Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                // Fixed height: fillMaxHeight here made the bar grow over the whole screen.
+                Box(Modifier.weight(1f).height(80.dp), contentAlignment = Alignment.Center) {
                     FloatingActionButton(
                         onClick = { adding = true },
                         shape = CircleShape,

@@ -27,6 +27,7 @@ class FinanceApp : Application() {
         super.onCreate()
         container = AppContainer(this)
         Notifications.createChannels(this)
-        WorkScheduler.schedule(this)
+        // Never let background scheduling crash the app on start.
+        runCatching { WorkScheduler.schedule(this) }
     }
 }
