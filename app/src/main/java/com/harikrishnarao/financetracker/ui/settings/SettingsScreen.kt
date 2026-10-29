@@ -62,6 +62,8 @@ import com.harikrishnarao.financetracker.ui.SectionLabel
 import com.harikrishnarao.financetracker.ui.SettingsViewModel
 import com.harikrishnarao.financetracker.ui.theme.LocalFinanceColors
 import com.harikrishnarao.financetracker.ui.theme.previewColors
+import com.harikrishnarao.financetracker.update.UpdateState
+import com.harikrishnarao.financetracker.update.UpdateViewModel
 
 @Composable
 fun SettingsScreen(onBack: () -> Unit, onOpenSmsActivity: () -> Unit) {
@@ -71,6 +73,8 @@ fun SettingsScreen(onBack: () -> Unit, onOpenSmsActivity: () -> Unit) {
     val accounts by vm.accounts.collectAsStateWithLifecycle()
     val busy by vm.busy.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val updates: UpdateViewModel = viewModel(factory = AppViewModelFactory)
+    val update by updates.state.collectAsStateWithLifecycle()
     var renaming by remember { mutableStateOf<AccountEntity?>(null) }
     var editingName by remember { mutableStateOf(false) }
     var confirmRebuild by remember { mutableStateOf(false) }
@@ -213,9 +217,27 @@ fun SettingsScreen(onBack: () -> Unit, onOpenSmsActivity: () -> Unit) {
             ) { Text("Open app battery settings") }
         }
 
+        item { SectionLabel("App updates") }
+        item {
+            Card {
+                Text("Arthix ${updates.updater.installedVersionName}", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    when (val u = update) {
+                        is UpdateState.Checking -> "Checking GitHub..."
+                        is UpdateState.UpToDate -> "You have the latest version."
+                        is UpdateState.Available -> "Version ${u.info.versionName} is ready. Use the banner at the top to install it."
+                        is UpdateState.Failed -> u.message
+                        else -> "Arthix checks for a new version every time you open it."
+                    },
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedButton(onClick = { updates.checkNow() }, modifier = Modifier.fillMaxWidth()) { Text("Check for updates now") }
+            }
+        }
+
         item { SectionLabel("Privacy") }
         item {
-            Notice("Everything stays on this phone. The app has no internet permission, so your SMS and money data cannot be uploaded anywhere.")
+            Notice("Your SMS and money data stay on this phone. Arthix uses the internet only to check its own GitHub page for updates, and sends nothing about you.")
         }
     }
 

@@ -6,6 +6,7 @@ import com.harikrishnarao.financetracker.data.AppDatabase
 import com.harikrishnarao.financetracker.data.FinanceRepository
 import com.harikrishnarao.financetracker.data.SettingsStore
 import com.harikrishnarao.financetracker.sms.SmsReader
+import com.harikrishnarao.financetracker.update.Updater
 import com.harikrishnarao.financetracker.work.Notifications
 import com.harikrishnarao.financetracker.work.WorkScheduler
 
@@ -15,6 +16,7 @@ class AppContainer(context: Context) {
     val database = AppDatabase.create(context)
     val smsReader = SmsReader(context)
     val repository = FinanceRepository(database, settings, smsReader)
+    val updater = Updater(context)
 }
 
 class FinanceApp : Application() {

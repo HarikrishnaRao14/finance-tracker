@@ -93,7 +93,7 @@ fun OnboardingScreen() {
                             Text("How it works", fontWeight = FontWeight.Bold)
                             Text("• The app reads SMS only from the banks you choose next. Personal chats and OTPs are ignored.")
                             Text("• New bank SMS are checked every 3 hours and sorted into categories.")
-                            Text("• Everything stays on this phone. The app has no internet access.")
+                            Text("• Your SMS and money data stay on this phone. Internet is used only to check for Arthix updates.")
                         }
                     }
                     if (denied) item { Notice("SMS access was not given. You can still add spends by hand, and turn on SMS later in Settings.", warn = true) }

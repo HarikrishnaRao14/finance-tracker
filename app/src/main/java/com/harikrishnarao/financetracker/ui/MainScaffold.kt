@@ -1,6 +1,7 @@
 package com.harikrishnarao.financetracker.ui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
@@ -31,7 +32,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.harikrishnarao.financetracker.update.UpdateBanner
+import com.harikrishnarao.financetracker.update.UpdateViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -70,6 +74,12 @@ fun MainScaffold() {
     val current = backStack?.destination
     var adding by remember { mutableStateOf(false) }
     val quickAdd: QuickAddViewModel = viewModel(factory = AppViewModelFactory)
+    val updates: UpdateViewModel = viewModel(factory = AppViewModelFactory)
+    // Every time the app is opened or comes back to the front, look for a newer version.
+    LifecycleResumeEffect(Unit) {
+        updates.checkIfDue()
+        onPauseOrDispose { }
+    }
 
     fun go(route: String) = nav.navigate(route) {
         popUpTo(nav.graph.findStartDestination().id) { saveState = true }
@@ -101,7 +111,9 @@ fun MainScaffold() {
             }
         },
     ) { padding ->
-        NavHost(nav, startDestination = Tab.HOME.route, modifier = Modifier.padding(padding)) {
+      Column(Modifier.padding(padding)) {
+        UpdateBanner()
+        NavHost(nav, startDestination = Tab.HOME.route, modifier = Modifier.weight(1f)) {
             composable(Tab.HOME.route) {
                 HomeScreen(
                     onSeeAll = { go(Routes.spends()) },
@@ -126,6 +138,7 @@ fun MainScaffold() {
             }
             composable(Routes.SMS) { SmsActivityScreen(onBack = { nav.popBackStack() }) }
         }
+      }
     }
 
     if (adding) {

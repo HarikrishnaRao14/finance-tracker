@@ -6,6 +6,7 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.harikrishnarao.financetracker.FinanceApp
+import com.harikrishnarao.financetracker.update.UpdateViewModel
 
 /** Builds every ViewModel from the app's single dependency container. */
 val AppViewModelFactory: ViewModelProvider.Factory = viewModelFactory {
@@ -19,4 +20,5 @@ val AppViewModelFactory: ViewModelProvider.Factory = viewModelFactory {
     initializer { BillsViewModel(app(this).container.repository) }
     initializer { SettingsViewModel(app(this).container.repository, app(this).container.settings) }
     initializer { SmsActivityViewModel(app(this).container.repository) }
+    initializer { UpdateViewModel(app(this).container.updater) }
 }

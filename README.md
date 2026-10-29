@@ -2,7 +2,7 @@
 
 *Artha* (अर्थ, Sanskrit: wealth, purpose) + tech. A personal Android app that tracks spending from bank SMS. It sorts spends into categories, suggests a monthly budget, and reminds you about bills.
 
-**Privacy:** the app has no internet permission. Your SMS and money data never leave the phone.
+**Privacy:** your SMS and money data never leave the phone. The only network use is the update check, which downloads `version.json` and the APK from this repo's releases.
 
 ## Features (v0.2)
 - **Bank SMS auto-tracking.** On first launch the app finds the banks that send you SMS, and you choose which ones to track. New SMS are checked every 3 hours, and there's also a "Sync now" button.
@@ -19,10 +19,13 @@
 - **3 deep-black themes** (Cobalt, Crimson, Nebula) and a bundled Poppins font.
 
 ## Install on your phone
-1. Open the **Actions** tab on GitHub and pick the latest green **CI** run.
-2. Under **Artifacts**, download `arthix-debug-N` and unzip it.
-3. Install it with `adb install -r app-debug.apk`. In India, Play Protect blocks SMS-reading apps installed from a browser or file manager.
-4. Newer builds install over older ones and keep your data. Every build is signed with the same key.
+**Direct link (always the newest build):**
+https://github.com/HarikrishnaRao14/finance-tracker/releases/latest/download/arthix.apk
+
+1. Open the link on your phone. The APK downloads directly, with no zip and no login.
+2. In India, Play Protect blocks SMS-reading apps installed from a browser. Pause it while you install: Play Store > profile > Play Protect > ⚙️ > turn off "Scan apps", install, then turn it back on.
+3. After that, **Arthix updates itself.** Each time you open it, it checks this repo's latest release. If there's a new version, an "Update now" banner appears. Tap it, then tap Install.
+4. Every build is signed with the same key, so updates keep your data.
 
 **Samsung tip:** go to Settings > Apps > Arthix > Battery and choose **Unrestricted**. Also make sure the app isn't in "Sleeping apps". Otherwise the 3-hour check may not run.
 

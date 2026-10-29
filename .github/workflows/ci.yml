@@ -64,13 +64,18 @@ jobs:
       - name: Prepare release files
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: bash
+        env:
+          NOTES: ${{ github.event.head_commit.message }}
+          RUN: ${{ github.run_number }}
+          REPO: ${{ github.repository }}
         run: |
           mkdir -p dist
           cp app/build/outputs/apk/debug/*.apk dist/arthix.apk
-          cat > dist/version.json <<EOF
-          {"versionCode": ${{ github.run_number }}, "versionName": "0.2.${{ github.run_number }}",
-           "apk": "https://github.com/${{ github.repository }}/releases/latest/download/arthix.apk"}
-          EOF
+          # The app reads this file on every open to decide whether an update is available.
+          jq -n --argjson code "$RUN" --arg name "0.2.$RUN" --arg notes "$NOTES" \
+            --arg apk "https://github.com/$REPO/releases/latest/download/arthix.apk" \
+            '{versionCode: $code, versionName: $name, notes: $notes, apk: $apk}' > dist/version.json
+          cat dist/version.json
 
       - name: Publish as latest release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
