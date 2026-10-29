@@ -99,7 +99,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           shopt -s nullglob
-          files=(app/build/screenshots/*.png app/build/screenshots/problems.txt)
+          files=(app/build/screenshots/*.png app/build/screenshots/problems.txt app/build/test-results/testDebugUnitTest/TEST-*Screenshot*.xml)
           [ ${#files[@]} -gt 0 ] || { echo "no screenshots"; exit 0; }
           gh release view ci-screenshots >/dev/null 2>&1 || \
             gh release create ci-screenshots --title "CI screenshots" --notes "Screens from the latest CI run" --prerelease --latest=false

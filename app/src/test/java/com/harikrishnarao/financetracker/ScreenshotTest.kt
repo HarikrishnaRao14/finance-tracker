@@ -63,7 +63,8 @@ class ScreenshotTest {
         try {
             block()
         } catch (t: Throwable) {
-            problems += "$name: ${t::class.simpleName}: ${t.message?.lineSequence()?.firstOrNull()}"
+            problems += "$name: ${t::class.simpleName}: ${t.message?.lineSequence()?.firstOrNull()}\n" +
+                t.stackTraceToString().lineSequence().take(40).joinToString("\n") { "    $it" }
             runCatching { save("FAILED_$name", compose.onRoot()) }
         }
     }
