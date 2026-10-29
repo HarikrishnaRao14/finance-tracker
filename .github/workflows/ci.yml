@@ -148,6 +148,7 @@ jobs:
           mkdir -p dist
           cp apk/*.apk dist/arthix.apk
           # The app reads this file on every open to decide whether an update is available.
+          NOTES="${NOTES// \[release\]/}" # the marker is for CI, not for the update banner
           jq -n --argjson code "$RUN" --arg name "0.2.$RUN" --arg notes "$NOTES" \
             --arg apk "https://github.com/$REPO/releases/latest/download/arthix.apk" \
             '{versionCode: $code, versionName: $name, notes: $notes, apk: $apk}' > dist/version.json
