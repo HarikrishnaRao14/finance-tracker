@@ -58,11 +58,12 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 30
 
-      # Every green build on main becomes the "latest" GitHub Release, so this link always
+      # A green build on main whose commit message contains [release] becomes the "latest"
+      # GitHub Release (only after its screenshots were reviewed). This link always
       # gives the newest APK, with no zip and no login:
       # https://github.com/HarikrishnaRao14/finance-tracker/releases/latest/download/arthix.apk
       - name: Prepare release files
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release]')
         shell: bash
         env:
           NOTES: ${{ github.event.head_commit.message }}
@@ -78,7 +79,7 @@ jobs:
           cat dist/version.json
 
       - name: Publish as latest release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release]')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
