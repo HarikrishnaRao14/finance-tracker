@@ -69,6 +69,7 @@ import com.harikrishnarao.financetracker.ui.TxnRow
 import com.harikrishnarao.financetracker.ui.theme.AmountStyle
 import com.harikrishnarao.financetracker.ui.theme.LocalFinanceColors
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(onSeeAll: () -> Unit, onSearch: () -> Unit, onOpen: (String) -> Unit, onSettings: () -> Unit) {
     val vm: HomeViewModel = viewModel(factory = AppViewModelFactory)
@@ -102,8 +103,19 @@ fun HomeScreen(onSeeAll: () -> Unit, onSearch: () -> Unit, onOpen: (String) -> U
 
         if (s.toReview > 0) {
             item {
-                Box(Modifier.clickable { onSeeAll() }) {
-                    Notice("${s.toReview} transaction(s) need a quick look (to sort or possible duplicate). Tap to review.", warn = true)
+                // Small one-line chip, so Recent Transactions stays close to the top.
+                Surface(
+                    onClick = onSeeAll,
+                    shape = RoundedCornerShape(50),
+                    color = LocalFinanceColors.current.warnBg,
+                    border = BorderStroke(1.dp, LocalFinanceColors.current.warnText.copy(alpha = 0.4f)),
+                ) {
+                    Text(
+                        "${s.toReview} to review: sort or check duplicates ›",
+                        Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = LocalFinanceColors.current.warnText,
+                    )
                 }
             }
         }

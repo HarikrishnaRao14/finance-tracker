@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -155,6 +156,7 @@ private fun RowScope.TabItem(tab: Tab, selected: Boolean, onClick: () -> Unit) {
     NavigationBarItem(
         selected = selected,
         onClick = onClick,
+        modifier = Modifier.testTag("tab_${tab.route}"),
         icon = { Icon(tab.icon, contentDescription = null) },
         label = { Text(tab.label) },
         colors = NavigationBarItemDefaults.colors(

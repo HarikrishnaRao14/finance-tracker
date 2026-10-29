@@ -260,6 +260,10 @@ private fun StatementCard(label: String, st: Statement) {
                 Text(if (st.isCard) "Spent on card" else "Money out", style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(Format.money(st.moneyOut), style = MaterialTheme.typography.titleMedium, color = fc.spending)
+                if (st.transfersOut > 0) {
+                    Text("incl. ${Format.money(st.transfersOut)} to your own accounts", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         }
         if (st.lastBalance != null && st.lastBalanceAt != null) {

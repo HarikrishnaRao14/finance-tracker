@@ -221,6 +221,8 @@ data class Statement(
     val lastBalanceAt: Long?,
     val isCard: Boolean,
     val count: Int,
+    /** Part of money out that went to your own accounts or card bill. */
+    val transfersOut: Paise = 0,
 )
 
 class SpendsViewModel(private val repo: FinanceRepository, store: SettingsStore) : ViewModel() {
@@ -315,6 +317,7 @@ class SpendsViewModel(private val repo: FinanceRepository, store: SettingsStore)
             lastBalanceAt = withBal?.timestamp,
             isCard = isCard,
             count = counted.size,
+            transfersOut = counted.filter { it.type == TxnType.DEBIT && it.category == Category.TRANSFER }.sumOf { it.amount },
         )
     }
 

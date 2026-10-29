@@ -11,6 +11,10 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
@@ -76,6 +80,19 @@ class ScreenshotTest {
     private fun scrollTo(text: String) =
         compose.onAllNodes(hasScrollToNodeAction()).onFirst().performScrollToNode(hasText(text, substring = true, ignoreCase = true))
 
+    private fun tab(route: String) = compose.onNodeWithTag("tab_$route").performClick()
+
+    /** Swipe the screen's list up to show what is below. */
+    private fun pageDown(times: Int = 1) = repeat(times) {
+        compose.onAllNodes(hasScrollToNodeAction()).onFirst().performTouchInput { swipeUp() }
+        compose.waitForIdle()
+    }
+
+    private fun pageUp() {
+        compose.onAllNodes(hasScrollToNodeAction()).onFirst().performTouchInput { swipeDown() }
+        compose.waitForIdle()
+    }
+
     private fun click(text: String) = compose.onAllNodesWithText(text, substring = false).onFirst().performClick()
 
     private fun back() {
@@ -98,9 +115,9 @@ class ScreenshotTest {
         runBlocking { seed(c) }
 
         step("home") { waitForText("CASH FLOW"); save("02_home", compose.onRoot()) }
-        step("home_bottom") { scrollTo("Recent Transactions"); save("03_home_recent", compose.onRoot()) }
+        step("home_bottom") { pageDown(); save("03_home_recent", compose.onRoot()); pageUp() }
 
-        step("spends") { click("Spends"); waitForText("Sync now"); save("04_spends", compose.onRoot()) }
+        step("spends") { tab("spends"); waitForText("Sync now"); save("04_spends", compose.onRoot()) }
         step("spends_list") { scrollTo("Swiggy"); save("05_spends_list", compose.onRoot()) }
         step("statement") {
             scrollTo("All accounts")
@@ -120,19 +137,19 @@ class ScreenshotTest {
             click("Cancel")
         }
 
-        step("analysis") { click("Analysis"); waitForText("Where your money went"); save("08_analysis", compose.onRoot()) }
-        step("analysis_budget") { scrollTo("Smart budget"); save("09_analysis_budget", compose.onRoot()) }
+        step("analysis") { tab("analysis"); waitForText("Where your money went"); save("08_analysis", compose.onRoot()) }
+        step("analysis_budget") { pageDown(2); save("09_analysis_budget", compose.onRoot()) }
 
-        step("bills") { click("Bills"); waitForText("Internet"); save("10_bills", compose.onRoot()) }
+        step("bills") { tab("bills"); waitForText("Internet"); save("10_bills", compose.onRoot()) }
 
         step("settings") {
-            click("Home")
+            tab("home")
             waitForText("CASH FLOW")
             click("HR")
             waitForText("Your name")
             save("11_settings", compose.onRoot())
         }
-        step("settings_accounts") { scrollTo("Your accounts and cards"); save("12_settings_accounts", compose.onRoot()) }
+        step("settings_accounts") { pageDown(2); save("12_settings_accounts", compose.onRoot()) }
         step("sms_activity") {
             scrollTo("SMS activity: what happened")
             click("SMS activity: what happened to each SMS")
