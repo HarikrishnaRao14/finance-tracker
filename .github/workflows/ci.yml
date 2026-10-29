@@ -52,7 +52,7 @@ jobs:
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: finance-tracker-debug-${{ github.run_number }}
+          name: arthix-debug-${{ github.run_number }}
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 30
 

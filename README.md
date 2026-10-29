@@ -1,10 +1,10 @@
-# Finance Tracker
+# Arthix
 
-A personal Android app that tracks spending from bank SMS. It sorts spends into categories, suggests a monthly budget, and reminds you about bills.
+*Artha* (अर्थ, Sanskrit: wealth, purpose) + tech. A personal Android app that tracks spending from bank SMS. It sorts spends into categories, suggests a monthly budget, and reminds you about bills.
 
 **Privacy:** the app has no internet permission. Your SMS and money data never leave the phone.
 
-## Features in v0.1 (prototype)
+## Features (v0.2)
 - **Bank SMS auto-tracking.** On first launch the app finds the banks that send you SMS, and you choose which ones to track. New SMS are checked every 3 hours, and there's also a "Sync now" button.
 - **Skips non-transactions.** OTPs, promos, failed payments, "will be debited" notices and balance alerts are ignored.
 - **No double counting.** Duplicate alerts are merged. Money moved between your own accounts is marked as "Own transfer", so it isn't counted as spend or income.
@@ -12,15 +12,19 @@ A personal Android app that tracks spending from bank SMS. It sorts spends into 
 - **Smart budget.** Limits come from your last 3 months of spending, checked against a 50/30/20 split of your income, with pace alerts during the month.
 - **Bills.** Reminders before each due date, autopay or manual. A bill is ticked off automatically when a matching debit SMS arrives.
 - **Manual entries** for cash spends.
-- **3 themes** (Forest, Midnight, Saffron), plus an option to follow the phone's dark mode.
+- **Accounts and statements.** Every bank account and credit card found in SMS gets its own statement (money in, money out, last balance). You can give each one a name.
+- **Frequent payee suggestions.** For example: "Paid 9 times at lunch time, about ₹110: set as Food?"
+- **SMS activity screen.** Shows every bank SMS and what the app did with it (added, OTP, promo, duplicate...).
+- **Possible duplicates.** A late second alert for the same payment is flagged and isn't counted until you keep it.
+- **3 deep-black themes** (Cobalt, Crimson, Nebula) and a bundled Poppins font.
 
 ## Install on your phone
 1. Open the **Actions** tab on GitHub and pick the latest green **CI** run.
-2. Under **Artifacts**, download `finance-tracker-debug-N` and unzip it.
-3. Copy the `.apk` to your phone, open it, and allow "Install unknown apps" when asked.
+2. Under **Artifacts**, download `arthix-debug-N` and unzip it.
+3. Install it with `adb install -r app-debug.apk`. In India, Play Protect blocks SMS-reading apps installed from a browser or file manager.
 4. Newer builds install over older ones and keep your data. Every build is signed with the same key.
 
-**Samsung tip:** go to Settings > Apps > Finance Tracker > Battery and choose **Unrestricted**. Also make sure the app isn't in "Sleeping apps". Otherwise the 3-hour check may not run.
+**Samsung tip:** go to Settings > Apps > Arthix > Battery and choose **Unrestricted**. Also make sure the app isn't in "Sleeping apps". Otherwise the 3-hour check may not run.
 
 ## Project layout
 ```
