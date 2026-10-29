@@ -16,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: development
     timeout-minutes: 30
+    permissions:
+      contents: write # needed to publish the release
     steps:
       - uses: actions/checkout@v4
 
@@ -55,6 +57,32 @@ jobs:
           name: arthix-debug-${{ github.run_number }}
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 30
+
+      # Every green build on main becomes the "latest" GitHub Release, so this link always
+      # gives the newest APK, with no zip and no login:
+      # https://github.com/HarikrishnaRao14/finance-tracker/releases/latest/download/arthix.apk
+      - name: Prepare release files
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/*.apk dist/arthix.apk
+          cat > dist/version.json <<EOF
+          {"versionCode": ${{ github.run_number }}, "versionName": "0.2.${{ github.run_number }}",
+           "apk": "https://github.com/${{ github.repository }}/releases/latest/download/arthix.apk"}
+          EOF
+
+      - name: Publish as latest release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Arthix 0.2.${{ github.run_number }}
+          body: ${{ github.event.head_commit.message }}
+          files: |
+            dist/arthix.apk
+            dist/version.json
+          make_latest: "true"
 
       - name: Upload test and lint reports
         if: always()
