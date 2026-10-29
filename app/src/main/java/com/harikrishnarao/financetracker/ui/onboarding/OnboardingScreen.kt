@@ -17,6 +17,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -44,6 +45,7 @@ fun OnboardingScreen() {
     val vm: OnboardingViewModel = viewModel(factory = AppViewModelFactory)
     val s by vm.state.collectAsStateWithLifecycle()
     var denied by remember { mutableStateOf(false) }
+    var name by remember { mutableStateOf("") }
 
     val permissions = buildList {
         add(Manifest.permission.READ_SMS)
@@ -76,7 +78,16 @@ fun OnboardingScreen() {
                 }
 
                 senders == null -> {
-                    item { ScreenTitle("Welcome", "Track your money without typing every spend") }
+                    item { ScreenTitle("Welcome to Arthix", "Your money, tracked from your bank SMS") }
+                    item {
+                        OutlinedTextField(
+                            value = name,
+                            onValueChange = { name = it.take(30); vm.setName(name) },
+                            label = { Text("Your name (optional)") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                     item {
                         Card {
                             Text("How it works", fontWeight = FontWeight.Bold)
@@ -90,7 +101,7 @@ fun OnboardingScreen() {
                         Button(onClick = { launcher.launch(permissions) }, modifier = Modifier.fillMaxWidth()) { Text("Allow SMS access") }
                     }
                     item {
-                        TextButton(onClick = { vm.skipSms {} }, modifier = Modifier.fillMaxWidth()) { Text("Skip, I'll add spends manually") }
+                        TextButton(onClick = { vm.skipSms() }, modifier = Modifier.fillMaxWidth()) { Text("Skip, I'll add spends manually") }
                     }
                 }
 
@@ -122,7 +133,7 @@ fun OnboardingScreen() {
                         }
                     }
                     item {
-                        Button(onClick = { vm.finish {} }, modifier = Modifier.fillMaxWidth()) {
+                        Button(onClick = { vm.finish() }, modifier = Modifier.fillMaxWidth()) {
                             Text(if (s.chosen.isEmpty()) "Continue without SMS tracking" else "Start tracking ${s.chosen.size} bank(s)")
                         }
                     }

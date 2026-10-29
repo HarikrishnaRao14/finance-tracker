@@ -23,6 +23,11 @@ object Format {
     private val dayFmt = DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH)
     private val fullFmt = DateTimeFormatter.ofPattern("d MMM, h:mm a", Locale.ENGLISH)
 
+    private val shortFmt = DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH)
+
+    /** "12 Jun" */
+    fun shortDate(ms: Long): String = Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()).format(shortFmt)
+
     fun time(ms: Long): String = Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()).format(timeFmt)
 
     fun dateTime(ms: Long): String = Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()).format(fullFmt)

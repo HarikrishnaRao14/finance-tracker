@@ -132,4 +132,64 @@ class SmsParserTest {
         assertNotNull(p)
         assertEquals(7500L, p!!.amount)
     }
+
+    // ---------- Formats seen on the user's phone (ICICI, Union Bank, ICICI credit card) ----------
+
+    @Test fun `ICICI UPI debit gives payee and UPI ref`() {
+        val p = parse("ICICI Bank Acct XX719 debited for Rs 110.00 on 29-Oct-26; CANTEEN SERVICES credited. UPI:530212345678. Call 18002662 for dispute. SMS BLOCK 719 to 9215676766.")!!
+        assertEquals(TxnType.DEBIT, p.type)
+        assertEquals(11000L, p.amount)
+        assertEquals("719", p.accountLast4)
+        assertEquals("Canteen Services", p.merchant)
+        assertEquals("530212345678", p.refNo)
+        assertEquals("UPI", p.channel)
+        assertFalse(p.isCard)
+    }
+
+    @Test fun `ICICI credit from a person`() {
+        val p = parse("Dear Customer, Acct XX719 is credited with Rs 500.00 on 28-Oct-26 from PRATIBHA RAO AL. UPI:529812345678-ICICI Bank.")!!
+        assertEquals(TxnType.CREDIT, p.type)
+        assertEquals("Pratibha RAO AL", p.merchant)
+        assertEquals("529812345678", p.refNo)
+    }
+
+    @Test fun `ICICI credit card spend is a card transaction`() {
+        val p = parse("INR 1,234.00 spent using ICICI Bank Card XX5678 on 29-Oct-26 on AMAZON. Avl Limit: INR 50,000.00. If not you, call 1800 2662/SMS BLOCK 5678 to 9215676766.")!!
+        assertEquals(TxnType.DEBIT, p.type)
+        assertEquals(123400L, p.amount)
+        assertEquals("5678", p.accountLast4)
+        assertTrue(p.isCard)
+        assertEquals("Amazon", p.merchant)
+        assertEquals("Card", p.channel)
+    }
+
+    @Test fun `credit card bill payment received`() {
+        val p = parse("Payment of Rs 5,000.00 has been received on your ICICI Bank Credit Card Account XX5678 on 29-Oct-26. Thank you.")!!
+        assertEquals(TxnType.CREDIT, p.type)
+        assertTrue(p.isCard)
+        assertEquals("5678", p.accountLast4)
+    }
+
+    @Test fun `debit card spend is not a credit card`() {
+        val p = parse("Rs 250.00 spent on your Debit Card XX4444 at DMART on 29-10-26.")!!
+        assertFalse(p.isCard)
+    }
+
+    @Test fun `Union Bank style debit with Rs colon`() {
+        val p = parse("A/c *1234 Debited for Rs:110.00 on 29-10-2026 12:46:10 by Mob Bk ref no 123456789012 Avl Bal Rs:1234.56.If not you, Call 1800222243 -Union Bank of India")!!
+        assertEquals(TxnType.DEBIT, p.type)
+        assertEquals(11000L, p.amount)
+        assertEquals("1234", p.accountLast4)
+        assertEquals("123456789012", p.refNo)
+        assertEquals(123456L, p.balance)
+    }
+
+    @Test fun `skip reasons are explained`() {
+        assertEquals(ParseOutcome.Skipped(SkipReason.OTP), SmsParser.classify("123456 is your OTP. Do not share."))
+        assertEquals(ParseOutcome.Skipped(SkipReason.PROMO), SmsParser.classify("You are eligible for a pre-approved loan"))
+        assertEquals(ParseOutcome.Skipped(SkipReason.NOT_YET), SmsParser.classify("Rs 649 will be debited on 30-10-26 from A/c XX1234"))
+        assertEquals(ParseOutcome.Skipped(SkipReason.FAILED), SmsParser.classify("Txn of Rs 300 failed"))
+        assertEquals(ParseOutcome.Skipped(SkipReason.NOT_TRANSACTION), SmsParser.classify("Your A/c XX1234 balance is Rs 500"))
+        assertEquals(ParseOutcome.Skipped(SkipReason.NO_AMOUNT), SmsParser.classify("Your account has been debited"))
+    }
 }

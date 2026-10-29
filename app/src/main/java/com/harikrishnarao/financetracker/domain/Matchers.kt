@@ -10,17 +10,32 @@ private const val MINUTE = 60_000L
  * or the same direction, amount and account within 10 minutes and the reference numbers
  * do not prove they are different payments.
  */
-object Deduper {
-    const val WINDOW_MS = 10 * MINUTE
+enum class DupVerdict { UNIQUE, DUPLICATE, POSSIBLE_DUPLICATE }
 
-    fun isDuplicate(new: TxnCandidate, existing: List<TxnCandidate>): Boolean = existing.any { old ->
-        if (new.refNo != null && old.refNo != null) {
-            return@any new.refNo.equals(old.refNo, ignoreCase = true)
+object Deduper {
+    /** Same payment for sure: merged silently. */
+    const val WINDOW_MS = 10 * MINUTE
+    /** Maybe the same payment (late second alert): kept but flagged for the user, not counted. */
+    const val POSSIBLE_WINDOW_MS = 60 * MINUTE
+
+    fun isDuplicate(new: TxnCandidate, existing: List<TxnCandidate>): Boolean =
+        check(new, existing) == DupVerdict.DUPLICATE
+
+    fun check(new: TxnCandidate, existing: List<TxnCandidate>): DupVerdict {
+        var verdict = DupVerdict.UNIQUE
+        for (old in existing) {
+            if (new.refNo != null && old.refNo != null) {
+                // Reference numbers decide: equal = same payment, different = two real payments.
+                if (new.refNo.equals(old.refNo, ignoreCase = true)) return DupVerdict.DUPLICATE
+                continue
+            }
+            val same = old.type == new.type && old.amount == new.amount && accountsCompatible(old.accountLast4, new.accountLast4)
+            if (!same) continue
+            val gap = abs(old.timestamp - new.timestamp)
+            if (gap <= WINDOW_MS) return DupVerdict.DUPLICATE
+            if (gap <= POSSIBLE_WINDOW_MS) verdict = DupVerdict.POSSIBLE_DUPLICATE
         }
-        old.type == new.type &&
-            old.amount == new.amount &&
-            accountsCompatible(old.accountLast4, new.accountLast4) &&
-            abs(old.timestamp - new.timestamp) <= WINDOW_MS
+        return verdict
     }
 
     private fun accountsCompatible(a: String?, b: String?) = a == null || b == null || a == b

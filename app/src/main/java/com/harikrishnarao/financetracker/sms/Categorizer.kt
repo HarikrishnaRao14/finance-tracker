@@ -13,7 +13,7 @@ object Categorizer {
         Category.FOOD to listOf(
             "swiggy", "zomato", "eatsure", "domino", "pizza", "mcdonald", "kfc", "burger", "subway",
             "starbucks", "cafe", "coffee", "chai", "restaurant", "hotel", "dhaba", "bakery", "biryani",
-            "food", "blinkit", "zepto", "instamart", "bigbasket", "dmart", "grocer", "kirana", "dairy", "milk",
+            "food", "canteen", "mess", "tiffin", "lunch", "meals", "juice", "sweets", "blinkit", "zepto", "instamart", "bigbasket", "dmart", "grocer", "kirana", "dairy", "milk",
         ),
         Category.TRAVEL to listOf(
             "uber", "ola", "rapido", "irctc", "railway", "metro", "redbus", "makemytrip", "goibibo", "ixigo",

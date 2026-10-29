@@ -36,6 +36,10 @@ data class ParsedSms(
     val refNo: String?,
     val balance: Paise?,
     val isRefund: Boolean,
+    /** True for credit card messages: the card is tracked as its own account. */
+    val isCard: Boolean = false,
+    /** "UPI", "Card", "ATM", "NEFT", "IMPS", "Autopay"... shown under the payee name. */
+    val channel: String? = null,
 )
 
 /** A transaction before it is saved, used by the duplicate and transfer checks. */

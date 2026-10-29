@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit
 class SmsSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         val repo = (applicationContext as FinanceApp).container.repository
-        return runCatching { repo.syncSms() }.fold({ Result.success() }, { Result.retry() })
+        return runCatching { repo.ensureParserUpToDate(); repo.syncSms() }.fold({ Result.success() }, { Result.retry() })
     }
 }
 

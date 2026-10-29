@@ -3,10 +3,10 @@ package com.harikrishnarao.financetracker.ui.settings
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.Settings as AndroidSettings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
-import android.provider.Settings as AndroidSettings
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,24 +22,37 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.harikrishnarao.financetracker.data.AccountEntity
 import com.harikrishnarao.financetracker.data.AppTheme
+import com.harikrishnarao.financetracker.data.label
 import com.harikrishnarao.financetracker.ui.AppViewModelFactory
 import com.harikrishnarao.financetracker.ui.Card
 import com.harikrishnarao.financetracker.ui.Notice
@@ -47,15 +60,21 @@ import com.harikrishnarao.financetracker.ui.RowsDivider
 import com.harikrishnarao.financetracker.ui.ScreenTitle
 import com.harikrishnarao.financetracker.ui.SectionLabel
 import com.harikrishnarao.financetracker.ui.SettingsViewModel
+import com.harikrishnarao.financetracker.ui.theme.LocalFinanceColors
 import com.harikrishnarao.financetracker.ui.theme.previewColors
 
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(onBack: () -> Unit, onOpenSmsActivity: () -> Unit) {
     val vm: SettingsViewModel = viewModel(factory = AppViewModelFactory)
     val settings by vm.settings.collectAsStateWithLifecycle()
     val senders by vm.senders.collectAsStateWithLifecycle()
+    val accounts by vm.accounts.collectAsStateWithLifecycle()
     val busy by vm.busy.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    var renaming by remember { mutableStateOf<AccountEntity?>(null) }
+    var editingName by remember { mutableStateOf(false) }
+    var confirmRebuild by remember { mutableStateOf(false) }
+
     val smsPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) vm.rescanBanks()
     }
@@ -66,10 +85,29 @@ fun SettingsScreen() {
 
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp, 24.dp),
+        contentPadding = PaddingValues(18.dp, 16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        item { ScreenTitle("Settings") }
+        item {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
+                ScreenTitle("Settings")
+            }
+        }
+        busy?.let { item { Notice(it) } }
+
+        // ---- Profile ----
+        item {
+            Card(Modifier.clickable { editingName = true }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Your name", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(settings.userName.ifBlank { "Tap to add" }, style = MaterialTheme.typography.titleMedium)
+                    }
+                    Icon(Icons.Filled.Edit, contentDescription = "Edit name")
+                }
+            }
+        }
 
         // ---- Theme ----
         item { SectionLabel("Theme") }
@@ -79,74 +117,97 @@ fun SettingsScreen() {
                     val selected = settings.theme == t
                     val (bg, card, accent) = t.previewColors()
                     Surface(
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(18.dp),
                         color = MaterialTheme.colorScheme.surface,
-                        border = BorderStroke(2.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface),
-                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable { vm.setTheme(t) },
+                        border = BorderStroke(2.dp, if (selected) accent else LocalFinanceColors.current.cardBorder),
+                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).clickable { vm.setTheme(t) },
                     ) {
                         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                             Row(Modifier.clip(RoundedCornerShape(10.dp))) {
                                 listOf(bg, card, accent).forEach { c -> Box(Modifier.size(18.dp, 40.dp).background(c)) }
                             }
                             Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
-                                Text(t.label, fontWeight = FontWeight.Bold)
+                                Text(t.label, style = MaterialTheme.typography.titleMedium)
                                 Text(t.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            if (selected) Icon(Icons.Filled.Check, contentDescription = "Selected", tint = MaterialTheme.colorScheme.primary)
+                            if (selected) Icon(Icons.Filled.Check, contentDescription = "Selected", tint = accent)
                         }
-                    }
-                }
-                Card {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Follow phone dark mode", fontWeight = FontWeight.SemiBold)
-                            Text("Uses Midnight when your phone is in dark mode", style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Switch(checked = settings.followSystemDark, onCheckedChange = vm::setFollowSystem)
                     }
                 }
             }
         }
 
-        // ---- Banks ----
-        item { SectionLabel("Banks tracked from SMS") }
+        // ---- Accounts ----
+        item { SectionLabel("Your accounts and cards") }
         item {
             Card {
-                if (senders.isEmpty()) {
-                    Text("No banks yet. Tap 'Find my banks' to scan your SMS.", style = MaterialTheme.typography.bodyMedium)
+                if (accounts.isEmpty()) {
+                    Text("Accounts appear here after the first bank SMS is read.", style = MaterialTheme.typography.bodyMedium)
                 }
+                accounts.forEachIndexed { i, a ->
+                    if (i > 0) RowsDivider()
+                    Row(Modifier.fillMaxWidth().clickable { renaming = a }, verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f).padding(vertical = 4.dp)) {
+                            Text(a.label, style = MaterialTheme.typography.titleSmall)
+                            Text("${a.bankName} · ${if (a.isCard) "Credit card" else "Bank account"} ending ${a.last4}",
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Icon(Icons.Filled.Edit, contentDescription = "Rename")
+                    }
+                }
+                Text("Tip: name them like 'ICICI Salary', 'Union Savings', 'ICICI Credit Card'.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
+        // ---- Banks ----
+        item { SectionLabel("Banks read from SMS") }
+        item {
+            Card {
+                if (senders.isEmpty()) Text("No banks yet. Tap 'Find my banks' to scan your SMS.", style = MaterialTheme.typography.bodyMedium)
                 senders.forEachIndexed { i, s ->
                     if (i > 0) RowsDivider()
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text(s.bankName, fontWeight = FontWeight.SemiBold)
+                            Text(s.bankName, style = MaterialTheme.typography.titleSmall)
                             Text("Sender ${s.code}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Switch(checked = s.tracked, onCheckedChange = { vm.setSenderTracked(s, it) })
                     }
                 }
-                OutlinedButton(onClick = { findBanks() }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
-                    Text(if (busy) "Scanning..." else "Find my banks and re-read last 90 days")
+                OutlinedButton(onClick = { findBanks() }, enabled = busy == null, modifier = Modifier.fillMaxWidth()) {
+                    Text("Find my banks again")
                 }
             }
         }
 
-        // ---- Background sync on Samsung and others ----
-        item { SectionLabel("Reliable background sync") }
+        // ---- SMS tools ----
+        item { SectionLabel("SMS tracking") }
+        item {
+            Card {
+                OutlinedButton(onClick = onOpenSmsActivity, modifier = Modifier.fillMaxWidth()) { Text("SMS activity: what happened to each SMS") }
+                OutlinedButton(onClick = { confirmRebuild = true }, enabled = busy == null, modifier = Modifier.fillMaxWidth()) {
+                    Text("Rebuild from SMS (last 90 days)")
+                }
+                Text("Rebuild re-reads your bank SMS with the latest rules. Cash entries, payee names and 'use for all' choices are kept.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
         item {
             Notice(
-                "Samsung and some other phones put apps to sleep, which can stop the 3-hourly SMS check. " +
-                    "Set this app's battery use to 'Unrestricted' and keep it out of 'Sleeping apps'.",
+                "Samsung puts apps to sleep, which stops the 3-hourly SMS check. Set Battery to 'Unrestricted' " +
+                    "and keep this app out of 'Sleeping apps' (Settings > Battery > Background usage limits).",
                 warn = true,
             )
         }
         item {
             OutlinedButton(
                 onClick = {
-                    val i = Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                        .setData(android.net.Uri.fromParts("package", context.packageName, null))
-                    runCatching { context.startActivity(i) }
+                    runCatching {
+                        context.startActivity(
+                            Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).setData(Uri.fromParts("package", context.packageName, null)),
+                        )
+                    }
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) { Text("Open app battery settings") }
@@ -156,5 +217,50 @@ fun SettingsScreen() {
         item {
             Notice("Everything stays on this phone. The app has no internet permission, so your SMS and money data cannot be uploaded anywhere.")
         }
+    }
+
+    renaming?.let { a ->
+        var name by remember(a.key) { mutableStateOf(a.nickname.orEmpty()) }
+        var isCard by remember(a.key) { mutableStateOf(a.isCard) }
+        AlertDialog(
+            onDismissRequest = { renaming = null },
+            title = { Text("${a.bankName} ··${a.last4}") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(name, { name = it.take(30) }, label = { Text("Name (e.g. ICICI Salary)") }, singleLine = true)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = isCard, onCheckedChange = { isCard = it })
+                        Text("This is a credit card")
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    vm.renameAccount(a, name)
+                    if (isCard != a.isCard) vm.setAccountIsCard(a, isCard)
+                    renaming = null
+                }) { Text("Save") }
+            },
+            dismissButton = { TextButton(onClick = { renaming = null }) { Text("Cancel") } },
+        )
+    }
+    if (editingName) {
+        var name by remember { mutableStateOf(settings.userName) }
+        AlertDialog(
+            onDismissRequest = { editingName = false },
+            title = { Text("Your name") },
+            text = { OutlinedTextField(name, { name = it.take(30) }, singleLine = true) },
+            confirmButton = { TextButton(onClick = { vm.setName(name); editingName = false }) { Text("Save") } },
+            dismissButton = { TextButton(onClick = { editingName = false }) { Text("Cancel") } },
+        )
+    }
+    if (confirmRebuild) {
+        AlertDialog(
+            onDismissRequest = { confirmRebuild = false },
+            title = { Text("Rebuild from SMS?") },
+            text = { Text("SMS transactions from the last 90 days are read again. Category changes you made to single transactions are reset.", fontWeight = FontWeight.Normal) },
+            confirmButton = { TextButton(onClick = { vm.rebuild(); confirmRebuild = false }) { Text("Rebuild") } },
+            dismissButton = { TextButton(onClick = { confirmRebuild = false }) { Text("Cancel") } },
+        )
     }
 }
