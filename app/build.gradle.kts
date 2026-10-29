@@ -68,8 +68,6 @@ android {
         unitTests.isIncludeAndroidResources = true
         unitTests.all { test ->
             test.maxHeapSize = "4g"
-            // Real (hardware-like) rendering so Compose screens can be captured as images.
-            test.systemProperty("robolectric.pixelCopyRenderMode", "hardware")
             test.testLogging {
                 events("failed")
                 exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
@@ -116,7 +114,11 @@ dependencies {
     testImplementation("org.robolectric:robolectric:4.14.1")
     testImplementation("androidx.test:core-ktx:1.6.1")
     testImplementation("androidx.room:room-testing:2.6.1")
-    // Screenshot tests: the real Compose UI rendered on the JVM (Robolectric native graphics).
-    testImplementation(composeBom)
-    testImplementation("androidx.compose.ui:ui-test-junit4")
+    // Screen tests on a real emulator in CI (androidTest).
+    androidTestImplementation(composeBom)
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test:core-ktx:1.6.1")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }

@@ -31,25 +31,23 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
-import org.robolectric.annotation.GraphicsMode
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
 import java.time.LocalDate
 import java.time.ZoneId
 
 /**
- * Opens the real app on the JVM with sample data and takes a picture of every screen.
- * The pictures are published with each CI run so the UI is checked before a release.
- * It also fails if any screen cannot be opened or crashes.
+ * Runs on a real Android emulator in CI: opens the app with sample data and takes a picture
+ * of every screen. The pictures are published with each CI run so the UI is reviewed before
+ * a release. It also fails if any screen cannot be opened or crashes.
  */
-@RunWith(RobolectricTestRunner::class)
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w411dp-h891dp-xhdpi")
+@RunWith(AndroidJUnit4::class)
 class ScreenshotTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
 
-    private val outDir = File("build/screenshots").apply { mkdirs() }
+    private val outDir = File(InstrumentationRegistry.getInstrumentation().targetContext.filesDir, "screenshots")
+        .apply { deleteRecursively(); mkdirs() }
     private val problems = mutableListOf<String>()
 
     private fun save(name: String, node: SemanticsNodeInteraction) {
