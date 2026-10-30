@@ -12,6 +12,9 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import com.harikrishnarao.financetracker.domain.PayCycleConfig
+import com.harikrishnarao.financetracker.domain.PayRule
+import java.time.LocalDate
 
 /** All themes are deep black with one vivid accent. */
 enum class AppTheme(val label: String, val description: String) {
@@ -34,6 +37,7 @@ data class Settings(
     /** e.g. "2 OTPs, 1 promo, 1 duplicate". */
     val lastSyncSkipped: String = "",
     val incomeOverride: Long = 0,
+    val payCycle: PayCycleConfig = PayCycleConfig(),
 )
 
 private val Context.dataStore by preferencesDataStore(name = "settings")
@@ -55,6 +59,9 @@ class SettingsStore(private val store: DataStore<Preferences>) {
         val added = longPreferencesKey("last_sync_added")
         val skipped = stringPreferencesKey("last_sync_skipped_text")
         val income = longPreferencesKey("income_override")
+        val payRule = stringPreferencesKey("pay_rule")
+        val payDay = intPreferencesKey("pay_fixed_day")
+        val payActual = longPreferencesKey("pay_actual_epoch_day")
     }
 
     val settings: Flow<Settings> = store.data.map { p -> p.toSettings() }
@@ -74,6 +81,11 @@ class SettingsStore(private val store: DataStore<Preferences>) {
         lastSyncAdded = this[K.added] ?: 0,
         lastSyncSkipped = this[K.skipped] ?: "",
         incomeOverride = this[K.income] ?: 0,
+        payCycle = PayCycleConfig(
+            rule = PayRule.entries.firstOrNull { it.name == this[K.payRule] } ?: PayRule.NONE,
+            fixedDay = this[K.payDay] ?: 1,
+            actualPayday = this[K.payActual]?.takeIf { it > 0 }?.let(LocalDate::ofEpochDay),
+        ),
     )
 
     suspend fun setTheme(theme: AppTheme) = store.edit { it[K.theme] = theme.name }
@@ -86,6 +98,12 @@ class SettingsStore(private val store: DataStore<Preferences>) {
     suspend fun setParserVersion(v: Int) = store.edit { it[K.parserVersion] = v }
     suspend fun setChecklistDismissed(on: Boolean) = store.edit { it[K.checklistDismissed] = on }
     suspend fun setIncomeOverride(paise: Long) = store.edit { it[K.income] = paise }
+    suspend fun setPayRule(rule: PayRule, fixedDay: Int) = store.edit {
+        it[K.payRule] = rule.name
+        it[K.payDay] = fixedDay.coerceIn(1, 31)
+    }
+    /** Salary came on [day] instead of the rule's date; null clears the correction. */
+    suspend fun setActualPayday(day: LocalDate?) = store.edit { it[K.payActual] = day?.toEpochDay() ?: 0L }
     suspend fun resetSmsCursor() = store.edit { it[K.lastSmsTs] = 0 }
 
     suspend fun recordSync(at: Long, lastSmsTs: Long, read: Int, added: Int, skipped: String) = store.edit {

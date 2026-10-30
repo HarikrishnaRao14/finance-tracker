@@ -23,6 +23,11 @@ import com.harikrishnarao.financetracker.domain.Category
 import com.harikrishnarao.financetracker.domain.FrequentPayee
 import com.harikrishnarao.financetracker.domain.Paise
 import com.harikrishnarao.financetracker.domain.PayeeInsights
+import com.harikrishnarao.financetracker.domain.Cycle
+import com.harikrishnarao.financetracker.domain.PayCycle
+import com.harikrishnarao.financetracker.domain.PayCycleConfig
+import com.harikrishnarao.financetracker.domain.PayRule
+import java.time.LocalDate
 import com.harikrishnarao.financetracker.domain.TxnSource
 import com.harikrishnarao.financetracker.domain.TxnType
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -115,7 +120,9 @@ class OnboardingViewModel(private val repo: FinanceRepository, private val store
 
 // ---------------- Home ----------------
 
-enum class Period(val label: String) { THIS_MONTH("This Month"), LAST_MONTH("Last Month"), LAST_3_MONTHS("Last 3 Months") }
+enum class Period(val label: String) {
+    PAY_CYCLE("This Pay Cycle"), THIS_MONTH("This Month"), LAST_MONTH("Last Month"), LAST_3_MONTHS("Last 3 Months"),
+}
 
 data class ChecklistItem(val id: String, val title: String, val done: Boolean)
 
@@ -132,16 +139,27 @@ class HomeViewModel(private val repo: FinanceRepository, private val store: Sett
         val checklist: List<ChecklistItem> = emptyList(),
         val showChecklist: Boolean = false,
         val toReview: Int = 0,
+        val payCycleSet: Boolean = false,
+        /** Shown under the cash flow title for the pay cycle, e.g. "30 Oct – 29 Nov". */
+        val cycleRange: String? = null,
+        val daysToSalary: Long? = null,
+        val nextPayday: String? = null,
     ) {
         val net: Paise get() = income - spending
+        /** What can be spent per day until the next salary and still end at zero. */
+        val perDay: Paise? get() = daysToSalary?.takeIf { it > 0 && net > 0 }?.let { net / it }
     }
 
-    private val period = MutableStateFlow(Period.THIS_MONTH)
+    /** null = automatic: the pay cycle when one is set, otherwise this month. */
+    private val period = MutableStateFlow<Period?>(null)
     private val batteryOk = MutableStateFlow(isBatteryUnrestricted())
 
-    private fun range(p: Period): Pair<Long, Long> {
+    private fun range(p: Period, cycle: Cycle?): Pair<Long, Long> {
         val now = YearMonth.now()
+        val zone = java.time.ZoneId.systemDefault()
         return when (p) {
+            Period.PAY_CYCLE -> if (cycle == null) range(Period.THIS_MONTH, null) else
+                cycle.start.atStartOfDay(zone).toInstant().toEpochMilli() to cycle.nextPayday.atStartOfDay(zone).toInstant().toEpochMilli()
             Period.THIS_MONTH -> repo.startOf(now) to repo.startOf(now.plusMonths(1))
             Period.LAST_MONTH -> repo.startOf(now.minusMonths(1)) to repo.startOf(now)
             Period.LAST_3_MONTHS -> repo.startOf(now.minusMonths(2)) to repo.startOf(now.plusMonths(1))
@@ -158,15 +176,21 @@ class HomeViewModel(private val repo: FinanceRepository, private val store: Sett
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val state: StateFlow<State> = combine(
-        period.flatMapLatest { p -> range(p).let { (a, b) -> repo.observeBetween(a, b) }.map { p to it } },
+        combine(period, store.settings.map { it.payCycle }.distinctUntilChanged()) { p, cfg -> p to cfg }
+            .flatMapLatest { (chosen, cfg) ->
+                val cycle = PayCycle.current(LocalDate.now(), cfg)
+                val p = chosen ?: if (cycle != null) Period.PAY_CYCLE else Period.THIS_MONTH
+                range(p, cycle).let { (a, b) -> repo.observeBetween(a, b) }.map { PeriodData(p, cycle, it) }
+            },
         thisMonth,
         store.settings,
         combine(extra, batteryOk) { e, ok -> e to ok },
         lookups(repo),
-    ) { (p, txns), monthTxns, s, (e, battery), look ->
+    ) { (p, cycle, txns), monthTxns, s, (e, battery), look ->
         val spend = spendByCategory(txns).values.sum()
         val reviewCount = monthTxns.count { it.possibleDuplicate || it.category == Category.UNCATEGORISED }
         val checklist = listOf(
+            ChecklistItem("paycycle", "Set your salary date (pay cycle)", s.payCycle.isSet),
             ChecklistItem("budget", "Set your budget for this month", e.limits.isNotEmpty()),
             ChecklistItem("bills", "Add recurring bills", e.billCount > 0),
             ChecklistItem("accounts", "Name your accounts", e.namedAccounts),
@@ -185,8 +209,14 @@ class HomeViewModel(private val repo: FinanceRepository, private val store: Sett
             checklist = checklist,
             showChecklist = !s.checklistDismissed && checklist.any { !it.done },
             toReview = reviewCount,
+            payCycleSet = cycle != null,
+            cycleRange = if (p == Period.PAY_CYCLE && cycle != null) "${Format.dayMonth(cycle.start)} – ${Format.dayMonth(cycle.lastDay)}" else null,
+            daysToSalary = if (p == Period.PAY_CYCLE) cycle?.daysLeft(LocalDate.now()) else null,
+            nextPayday = if (p == Period.PAY_CYCLE) cycle?.nextPayday?.let(Format::weekdayDayMonth) else null,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT), State())
+
+    private data class PeriodData(val period: Period, val cycle: Cycle?, val txns: List<TransactionEntity>)
 
     fun setPeriod(p: Period) { period.value = p }
     fun dismissChecklist() = viewModelScope.launch { store.setChecklistDismissed(true) }
@@ -465,6 +495,8 @@ class SettingsViewModel(private val repo: FinanceRepository, private val store: 
     val busy: StateFlow<String?> = _busy
 
     fun setTheme(t: AppTheme) = viewModelScope.launch { store.setTheme(t) }
+    fun setPayRule(rule: PayRule, day: Int) = viewModelScope.launch { store.setPayRule(rule, day); store.setActualPayday(null) }
+    fun setActualPayday(day: LocalDate?) = viewModelScope.launch { store.setActualPayday(day) }
     fun setName(n: String) = viewModelScope.launch { store.setUserName(n) }
     fun setSenderTracked(s: TrackedSender, on: Boolean) = viewModelScope.launch { repo.setSenderTracked(s, on) }
     fun renameAccount(a: AccountEntity, name: String) = viewModelScope.launch { repo.renameAccount(a.key, name) }

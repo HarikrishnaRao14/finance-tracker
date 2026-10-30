@@ -25,6 +25,11 @@ object Format {
 
     private val shortFmt = DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH)
 
+    private val wdFmt = DateTimeFormatter.ofPattern("EEE d MMM", Locale.ENGLISH)
+    fun dayMonth(d: LocalDate): String = d.format(shortFmt)
+    /** "Mon 30 Nov" */
+    fun weekdayDayMonth(d: LocalDate): String = d.format(wdFmt)
+
     /** "12 Jun" */
     fun shortDate(ms: Long): String = Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()).format(shortFmt)
 
